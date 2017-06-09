@@ -5,8 +5,10 @@ function	fn_tann_hcp_onesbj_restNtasks_mat(sbjnm, list_hcp_flnm)
 %
 %clear all;
 
-rootpth='/data/leej45';
+%rootpth='/data/leej45';
+rootpth='/data/HCP/HCP_900';
 datapth=[rootpth '/s3/hcp']; 
+rstpth = '/data/leej45/s3/hcp';
 %=== addpath for commonly used m-files
 %addpath([rootpth '/_codes']);
 %=== addpath for cifti file interface
@@ -70,6 +72,7 @@ while 1,
 			x_subcortcerebel=(x0_subcortcerebel - mean(x0_subcortcerebel(:)))/std(x0_subcortcerebel(:));
 			%
 			x=[x_cortsurf; x_subcortcerebel]';
+			x = [x; nan(1, ngrayord)];
 			x = x / 10;
 			%
 	%		x=reshape(zscore(cii.cdata(:)),ngrayord,nTR)';
@@ -86,6 +89,8 @@ while 1,
 end
 fclose(fp);
 fprintf('size of X = [%d %d]\n', size(X,1), size(X,2));
+
+save('X.mat', 'X'); return
 %
 %keyboard;
 %c=parcluster('local');
@@ -100,10 +105,10 @@ for hoyerspdx=1:length(targethoyersps),
 	nn.inputnormalize = inputnormalize; % 'unitvar_per_volumn' or 'unitvar_per_boldts'
 	%
 	%==================== overall parameter setting
-	nn.activation_function = 'tanh_opt'; nn.output = 'linear'; 
+	nn.activation_function = 'tanh'; nn.output = 'linear'; 
 	nn.numepochs = 300; nn.beginAnneal = 100; 
 	nn.learningRate = [5e-3 5e-3]; nn.scaling_learningRate=1; nn.decayrate=-1e-4; nn.mlrate=1e-6;
-	nn.batchsize = 200; 
+	nn.batchsize = 20; 
 	nn.momentum=0.5;
 	nn.validation = 0; nn.plot = 0;
 	%==================== for input nodes
@@ -159,7 +164,7 @@ for hoyerspdx=1:length(targethoyersps),
 					'_dropout' num2str(nn.dropoutFraction) '_hactfn_' nn.activation_function '_oactfn_' nn.output ...
 					'_' num2str(nn.numepochs) 'epoch_' num2str(nn.beginAnneal) 'beginAnneal_' ...
 					nn.inputnormalize	'_' [sbjnm '_' list_hcp_flnm] '_' timestring];
-	parfor_save(fullfile(datapth,sbjnm,[savflnm '.mat']), C);
+	parfor_save(fullfile(rstpth,sbjnm,[savflnm '.mat']), C);
 	%======================================== save encoding/decoding features
 	We=nn.W{1}(:,2:end); Wd=nn.W{2}(:,2:end);
 %	newcii=cii; newcii.cdata=We'; ciftisave(newcii,[savflnm '_We.dtseries.nii'],'wb_command');
@@ -169,7 +174,7 @@ for hoyerspdx=1:length(targethoyersps),
 	Wd_signc=Wd.*(ones(size(Wd,1),1)*signskewness_Wd); % skewness/sign corrected Wd
 	%
 	%save('rst.mat'),'We','Wd');
-	save(fullfile(datapth,sbjnm,[savflnm '_We_Wd_signc.mat']),'We','Wd','Wd_signc'); % save encoding/decoding features
+	save(fullfile(rstpth,sbjnm,[savflnm '_We_Wd_signc.mat']),'We','Wd','Wd_signc'); % save encoding/decoding features
 	%=================================================================================================
 end
 %
